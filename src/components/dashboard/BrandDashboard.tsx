@@ -50,15 +50,22 @@ export interface Campaign {
   status?: string;
   applicationsCount: number;
   campaign_applications?: { id: string }[];
+
+  brand_logo?: string;
+  brand_description?: string;
+  brand_website?: string;
 }
 
 interface PublicInfluencer {
   id: string;
   full_name?: string;
   bio?: string;
-  // category: string[];
-  // followers: number;
   company_name?: string;
+
+  profile_image_url?: string;
+  profileUrl?: string;
+  category?: string;
+  subscribers?: number;
   engagementRate?: number;
 }
 
@@ -93,6 +100,7 @@ const BrandDashboard = () => {
     ];
     const [averageEngagement, setAverageEngagement] = useState(0);
     const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+    const [selectedInfluencer, setSelectedInfluencer] = useState<PublicInfluencer | null>(null);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
@@ -133,6 +141,9 @@ const BrandDashboard = () => {
         return {
           id: docSnap.id,
           brand_name: data.brand_name,   
+          brand_logo: data.brand_logo ?? "",
+          brand_description: data.brand_description ?? "",
+          brand_website: data.brand_website ?? "",
           title: data.title,
           description: data.description,
           budget: data.budget,
@@ -163,6 +174,11 @@ const BrandDashboard = () => {
         full_name: data.full_name ?? "",
         bio: data.bio ?? "",
         company_name: data.company_name ?? "",
+
+        profile_image_url: data.profile_image_url ?? "",
+        profileUrl: data.profileUrl ?? "",
+        category: data.category ?? "",
+        subscribers: data.subscribers ?? data.followers ?? 0,
         engagementRate: data.engagementRate ?? 0,
       };
     });
@@ -203,17 +219,6 @@ const BrandDashboard = () => {
       });
     }
   };
-
-//   const loadRecommendations = async () => {
-//   if (!searchCategory) return;
-
-//   const data = await getRecommendedInfluencers({
-//     category: searchCategory,
-//     location: "Pune",
-//   });
-
-//   setRecommended(data);
-// };
 
 const loadAnalytics = async () => {
   const user = auth.currentUser;
@@ -292,10 +297,11 @@ const loadCampaignRecommendations = async () => {
   );
 
   const data = await response.json();
+  console.log("FULL API RESPONSE:", data);
+console.log("INFLUENCERS ARRAY:", data.influencers);
 
-  setRecommendedInfluencers(prev => [...prev, ...data.influencers]);
+  setRecommendedInfluencers(prev => [...prev, ...(data.influencers || [])]);
   setNextPageToken(data.nextPageToken);
-
   setLoading(false);
 };
 
@@ -314,13 +320,17 @@ useEffect(() => {
   return () => window.removeEventListener("scroll", handleScroll);
 }, [nextPageToken]);
 
-const formatFollowers = (num: number) => {
+const formatSubscribers = (num?: number) => {
+  if (!num) return "0";
+
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1).replace(".0", "") + "M";
   }
+
   if (num >= 1000) {
     return (num / 1000).toFixed(1).replace(".0", "") + "K";
   }
+
   return num.toString();
 };
 
@@ -438,7 +448,39 @@ const formatFollowers = (num: number) => {
                           <CardHeader>
                             <div className="flex justify-between items-start">
                               <div>
-                                <CardTitle className="text-card-foreground">{campaign.brand_name}</CardTitle>
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={campaign.brand_logo}
+                                    className="w-10 h-10 rounded-full"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "https://www.google.com/s2/favicons?domain=google.com&sz=128";
+                                    }}
+                                  />
+
+                                    <p
+                                className="font-bold text-blue-600 cursor-pointer hover:underline"
+                               onClick={() => {
+                                if (!campaign.brand_website) {
+                                  alert("No website provided for this brand");
+                                  return;
+                                }
+
+                                let url = campaign.brand_website.trim();
+
+                                // 🔥 REMOVE existing protocol if present
+                                url = url.replace(/^https?:\/\//, "");
+
+                                // 🔥 ALWAYS ADD clean https
+                                url = "https://" + url;
+
+                                console.log("FINAL URL:", url); // debug
+
+                                window.open(url, "_blank", "noopener,noreferrer");
+                              }}
+                              >
+                                {campaign.brand_name}
+                              </p>
+                              </div>
                                 <CardDescription className="text-muted-foreground mt-2">
                                   {campaign.title}
                                 </CardDescription>
@@ -500,7 +542,9 @@ const formatFollowers = (num: number) => {
                 )}
                 {recommendedInfluencers.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
-              {recommendedInfluencers.map((inf) => (
+              {recommendedInfluencers.map((inf) => {
+                console.log("INF DATA:", inf);
+                  return (
                 <Card key={inf.id}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-2">
@@ -509,7 +553,7 @@ const formatFollowers = (num: number) => {
                       alt={inf.name}
                       className="w-12 h-12 rounded-full object-cover"
                     />
-
+                   
                     <a
                       href={inf.profileUrl}
                       target="_blank"
@@ -519,18 +563,19 @@ const formatFollowers = (num: number) => {
                     </a>
                   </div>
                     <p className="text-sm text-muted-foreground">
-                      Followers: {formatFollowers(inf.followers)}
+                      Subscribers: {formatSubscribers(Number(inf.subscribers || 0))}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Category: {inf.category?.join(", ")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Engagement Rate: {inf.engagementRate}%
+                      Engagement Rate: {(inf.subscribers || 0) < 1000 ? "N/A" : Math.min(inf.engagementRate, 100).toFixed(2) + "%"}
                     </p>
                     {inf.status === "Trusted" && (
                     <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
                       🟢 Trusted Influencer
                     </span>
+                    
                   )}
 
                   {inf.status === "Normal" && (
@@ -546,7 +591,8 @@ const formatFollowers = (num: number) => {
                   )}
                   </CardContent>
                 </Card>
-              ))}
+                  );
+                })}
             </div>
           )}
               </div>
@@ -563,32 +609,124 @@ const formatFollowers = (num: number) => {
                     <p className="text-center text-muted-foreground">
                       No influencers registered yet.
                     </p>
+                    
                   </CardContent>
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {influencers.map((influencer) => (
-                    <Card key={influencer.id} className="bg-card border-border">
-                      <CardHeader>
-                        <CardTitle className="text-card-foreground">
-                          {influencer.full_name || "Unnamed"}
-                        </CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                          {influencer.company_name || "Influencer"}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground line-clamp-3">
-                          {influencer.bio || "No bio available"}
+                  {influencers.map((inf) => {
+                  const engagement = inf.engagementRate || 0;
+
+                  const subs = inf.subscribers || 0;
+                  let status = "Normal";
+                  if (subs >= 10000) status = "Trusted";
+                  else if (subs >= 1000) status = "Normal";
+                  else status = "Suspicious";
+
+                  return (
+                    <Card key={inf.id} onClick={() => setSelectedInfluencer(inf)}
+                      className="cursor-pointer hover:shadow-lg transition">
+                      <CardContent className="p-4">
+
+                        {/* 👤 IMAGE */}
+                        <img
+                          src={inf.profile_image_url || "https://via.placeholder.com/50"}
+                          className="w-12 h-12 rounded-full mb-2"
+                        />
+                        <p
+                          className="font-medium text-blue-600 cursor-pointer"
+                          onClick={() => setSelectedInfluencer(inf)}
+                        >
+                          {inf.full_name}
                         </p>
-                        <div className="mt-4">
-                          <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-muted-foreground">
-                            ID: {influencer.id.slice(0, 8)}...
+
+                        <p className="text-sm">
+                          Subscribers: {formatSubscribers(inf.subscribers || 0)}
+                        </p>
+
+                        <p className="text-sm">
+                          Category: {inf.category || "General"}
+                        </p>
+
+                        <p className="text-sm">
+                          Engagement Rate: {(inf.subscribers || 0) < 1000 ? "N/A" : Math.min(engagement, 100).toFixed(2) + "%"}
+                        </p>
+
+                        {/* STATUS */}
+                        {status === "Trusted" && (
+                          <span className="bg-green-100 text-green-700 px-2 py-1 text-xs rounded">
+                            🟢 Trusted Influencer
                           </span>
-                        </div>
+                        )}
+
+                        {status === "Normal" && (
+                          <span className="bg-yellow-100 text-yellow-700 px-2 py-1 text-xs rounded">
+                            🟡 Normal Influencer
+                          </span>
+                        )}
+
+                        {status === "Suspicious" && (
+                          <span className="bg-red-100 text-red-700 px-2 py-1 text-xs rounded">
+                            🔴 Suspicious Influencer
+                          </span>
+                        )}
+
                       </CardContent>
                     </Card>
-                  ))}
+                  );
+                })}
+                </div>
+              )}
+              {selectedInfluencer && (
+                <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+                  <Card className="p-6 w-96 bg-white shadow-xl rounded-xl">
+
+                    {/* IMAGE */}
+                    <img
+                      src={selectedInfluencer.profile_image_url || "https://via.placeholder.com/60"}
+                      className="w-16 h-16 rounded-full mb-3"
+                    />
+
+                    {/* NAME */}
+                    <h2 className="text-xl font-bold">
+                      {selectedInfluencer.full_name}
+                    </h2>
+
+                    {/* LINK */}
+                    <a
+                      href={selectedInfluencer.profileUrl || "#"}
+                      target="_blank"
+                      className="text-blue-500"
+                    >
+                      View Profile
+                    </a>
+
+                    {/* DATA */}
+                    <p>Subscribers:{formatSubscribers(selectedInfluencer.subscribers)}</p>
+                    <p>Category: {selectedInfluencer.category || "General"}</p>
+                    <p>Engagement: {(selectedInfluencer.subscribers || 0) < 1000 ? "N/A" : Math.min(selectedInfluencer.engagementRate || 0, 100).toFixed(2) + "%"}</p>
+
+                    {/* STATUS */}
+                    {(selectedInfluencer.subscribers || 0) >= 10000 && (
+                      <p className="text-green-600">🟢 Trusted</p>
+                    )}
+                    {(selectedInfluencer.subscribers || 0) >= 1000 &&
+                    (selectedInfluencer.subscribers || 0) < 10000 && (
+                      <p className="text-yellow-600">🟡 Normal</p>
+                    )}
+                    {(selectedInfluencer.subscribers || 0) < 1000 && (
+                      <p className="text-red-600">🔴 Suspicious</p>
+                    )}
+
+                    {/* CLOSE BUTTON */}
+                    <Button
+                      className="mt-4"
+                      onClick={() => setSelectedInfluencer(null)}
+                    >
+                      Close
+                    </Button>
+
+                  </Card>
                 </div>
               )}
             </>
@@ -649,7 +787,6 @@ const formatFollowers = (num: number) => {
   </div>
 )}
  
-
             {activeTab === "settings" && (
               <ProfileSettings />
             )}

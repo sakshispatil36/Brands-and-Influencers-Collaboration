@@ -38,6 +38,7 @@ export const CreateCampaignDialog = ({
   onSuccess,
 }: CreateCampaignDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [brandWebsite, setBrandWebsite] = useState("");
   const { toast } = useToast();
 
   const form = useForm<CampaignForm>({
@@ -53,6 +54,20 @@ export const CreateCampaignDialog = ({
     },
   });
 
+  const getDomain = (url: string) => {
+  try {
+    const cleaned = url
+      .trim()
+      .replace(/(^\w+:|^)\/\//, "")   // remove http/https
+      .replace(/"/g, "")              // remove quotes
+      .split("/")[0];                 // get domain only
+
+    return cleaned;
+  } catch {
+    return "";
+  }
+};
+
   const onSubmit = async (data: CampaignForm) => {
     setLoading(true);
 
@@ -66,11 +81,26 @@ export const CreateCampaignDialog = ({
       setLoading(false);
       return;
     }
+    let cleanUrl = brandWebsite.trim();
+    cleanUrl = cleanUrl.replace(/"/g, "").replace(/\s/g, "");
+    if (!cleanUrl || !cleanUrl.includes(".")) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid website",
+      });
+      setLoading(false);
+      return;
+    }
+    const domain = getDomain(cleanUrl);
+
+    const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
     try {
       await addDoc(collection(db, "campaigns"), {
         brand_id: user.uid,
         brand_name: data.brandName,
+        brand_website: cleanUrl, 
+        brand_logo: logoUrl,
         title: data.title,
         category: data.category,     
         description: data.description,
@@ -89,6 +119,7 @@ export const CreateCampaignDialog = ({
       form.reset();
       onOpenChange(false);
       onSuccess();
+      setBrandWebsite("");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Something went wrong";
       toast({
@@ -99,6 +130,7 @@ export const CreateCampaignDialog = ({
 
     setLoading(false);
   };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] bg-white border border-gray-200 shadow-2xl rounded-xl p-6">
@@ -124,6 +156,15 @@ export const CreateCampaignDialog = ({
                 </FormItem>
               )}
             />
+
+          <div className="space-y-2">
+            <FormLabel>Brand Website</FormLabel>
+            <Input
+              placeholder="https://amul.com"
+              value={brandWebsite}
+              onChange={(e) => setBrandWebsite(e.target.value)}
+            />
+          </div>
 
             <FormField
               control={form.control}

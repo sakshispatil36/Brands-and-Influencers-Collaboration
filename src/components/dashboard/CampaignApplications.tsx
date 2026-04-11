@@ -8,7 +8,6 @@ import { Check, X, MessageSquare } from "lucide-react";
 import MessagingPanel from "./MessagingPanel";
 import { generateContractPDF } from "../../services/contractService";
 import { onSnapshot } from "firebase/firestore";
-// import type { Influencer } from "@/types/influencer";
 
 export interface Application {
   id: string;
@@ -17,11 +16,7 @@ export interface Application {
   created_at: Date; 
   influencer_id: string;
   signature_url?: string | null;  
-  profiles?: {
-  full_name: string;
-  bio: string;
-  company_name: string;
-  };
+  profiles?: InfluencerProfile;
 }
 
 interface CampaignApplicationsProps {
@@ -30,26 +25,45 @@ interface CampaignApplicationsProps {
   brandName: string;  
 }
 
+type InfluencerProfile = {
+  full_name: string;
+  bio?: string;
+  company_name?: string;
+  subscribers?: number;
+  category?: string;
+  engagementRate?: number;
+  profile_image_url?: string;
+  profileUrl?: string;
+};
+
 const CampaignApplications = ({ campaignId, campaignTitle, brandName }: CampaignApplicationsProps) => {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [selectedInfluencer, setSelectedInfluencer] = useState<{id: string, name: string} | null>(null);
+  const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerProfile | null>(null);
+  const [selectedChat, setSelectedChat] = useState<{ id: string; name: string } | null>(null);
   const [contractsMap, setContractsMap] = useState<Record<string, string>>({});
-  // const [recommendedInfluencers, setRecommendedInfluencers] = useState<Influencer[]>([]);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   // Helper function to fetch profile
   const getProfile = async (influencerId: string) => {
-    if (!influencerId) return undefined;
-    const profileSnap = await getDoc(doc(db, "profiles", influencerId));
-    if (!profileSnap.exists()) return undefined;
-    const data = profileSnap.data();
-    return {
-      full_name: data.full_name,
-      bio: data.bio,
-      company_name: data.company_name,
-    };
+  if (!influencerId) return undefined;
+
+  const profileSnap = await getDoc(doc(db, "profiles", influencerId));
+  if (!profileSnap.exists()) return undefined;
+
+  const data = profileSnap.data();
+
+  return {
+    full_name: data.full_name || "",
+    bio: data.bio || "",
+    company_name: data.company_name || "",
+    subscribers: Number(data.subscribers ?? data.followers ?? 0),
+    category: data.category || "",
+    engagementRate: data.engagementRate || 0,
+    profile_image_url: data.profile_image_url || "",
+    profileUrl: data.profileUrl || "",
   };
+};
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -139,61 +153,20 @@ useEffect(() => {
   fetchApplications();
 }, [campaignId]);
 
-// const fetchRecommendations = async () => {
-//   try {
-//     // 🔥 Fetch campaign category directly here
-//     const campaignSnap = await getDoc(doc(db, "campaigns", campaignId));
 
-//     if (!campaignSnap.exists()) return;
+const formatSubscribers = (num?: number) => {
+  if (!num) return "0";
 
-//     const campaignData = campaignSnap.data();
-//     const category = campaignData.category;
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(".0", "") + "M";
+  }
 
-//     if (!category) {
-//       console.log("No category found in campaign");
-//       return;
-//     }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(".0", "") + "K";
+  }
 
-//     const q = query(
-//       collection(db, "influencers"),
-//       where("category", "array-contains", category),
-//       orderBy("followers", "desc"),
-//       limit(20)
-//     );
-
-//     const snapshot = await getDocs(q);
-
-//     const influencers: Influencer[] = snapshot.docs.map((docSnap) => {
-//       const data = docSnap.data();
-//       const followersValue = data.followers ?? 0;
-
-//       return {
-//       id: docSnap.id,
-//       name: data.name || "Unknown",
-//       followers: followersValue,
-//       followersCount: String(followersValue),
-//       category: data.category || [],
-//       location: data.City || "India",
-//       engagementRate: data.engagementRate ?? 0,
-//       rank: data.rank ?? 0,
-//       influenceScore: data.influenceScore ?? 0,
-//       City: data.City ?? "Unknown",
-//       credibilityScore: 0,
-//       suspicious: false,
-//       status: "Normal",
-//       matchScore: 0,
-//     };
-//     });
-
-//     setRecommendedInfluencers(influencers);
-
-//     console.log("Recommended count:", influencers.length);
-
-//   } catch (error) {
-//     console.error("Recommendation error:", error);
-//   }
-// };
-
+  return num.toString();
+};
 
   return (
     <Card className="bg-card border-border">
@@ -212,11 +185,20 @@ useEffect(() => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-base text-card-foreground">
+                    <div className="flex items-center gap-2">
+                    <img
+                      src={app.profiles?.profile_image_url || "https://ui-avatars.com/api/?name=" + (app.profiles?.full_name || "U")}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <CardTitle
+                      className="text-base text-blue-600 cursor-pointer hover:underline"
+                      onClick={() => setSelectedInfluencer(app.profiles ?? null)}
+                    >
                       {app.profiles?.full_name || "Unnamed Influencer"}
                     </CardTitle>
+                  </div>
                     <CardDescription className="text-muted-foreground">
-                      {app.profiles?.company_name || "Influencer"}
+                      {app.profiles?.company_name || ""}
                     </CardDescription>
                   </div>
                   <span
@@ -229,35 +211,9 @@ useEffect(() => {
                     {app.status}
                   </span>
                 </div>
+                
               </CardHeader>
               <CardContent className="space-y-4">
-
-                {/* <Button onClick={fetchRecommendations} className="mb-4">
-                  Show Recommendations
-                </Button> */}
-
-                {/* {recommendedInfluencers.length > 0 && (
-                  <div className="space-y-4 mb-6">
-                    <h3 className="text-lg font-semibold">Recommended Influencers</h3>
-                    {recommendedInfluencers.map((inf) => (
-                      <Card key={inf.id} className="bg-background border-border">
-                        <CardContent className="p-4">
-                          <p className="font-medium">{inf.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                          Followers: {inf.followers.toLocaleString()}
-                        </p>
-
-                        <p className="text-sm text-muted-foreground">
-                          Influence Score: {inf.influenceScore}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Country: {inf.City}
-                        </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )} */}
 
                 {app.profiles?.bio && (
                   <p className="text-sm text-muted-foreground">{app.profiles.bio}</p>
@@ -295,15 +251,15 @@ useEffect(() => {
                     size="sm"
                     variant="outline"
                     onClick={() =>
-                      setSelectedInfluencer(
-                        selectedInfluencer?.id === app.influencer_id
-                          ? null
-                          : { id: app.influencer_id, name: app.profiles?.full_name || "Influencer" }
-                      )
-                    }
+                    setSelectedChat(
+                      selectedChat?.id === app.influencer_id
+                        ? null
+                        : { id: app.influencer_id, name: app.profiles?.full_name || "Influencer" }
+                    )
+                  }
                   >
                     <MessageSquare className="h-4 w-4 mr-1" />
-                    {selectedInfluencer?.id === app.influencer_id ? "Hide Messages" : "Message"}
+                      {selectedChat?.id === app.influencer_id ? "Hide Messages" : "Message"}
                   </Button>
                 </div>
                {app.status === "approved" && (
@@ -329,20 +285,6 @@ useEffect(() => {
                     Generate Contract
                   </Button>
 
-                  {/* Upload Signature
-                  <label>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      hidden
-                      onChange={(e) => handleSignatureUpload(e, app.id)}
-                    />
-
-                    <Button size="sm" variant="outline" asChild>
-                      <span>✍ Upload Signature</span>
-                    </Button>
-                  </label> */}
-
                   {/* View Uploaded Signature */}
                   {contractsMap[app.influencer_id] && (
                     <>
@@ -367,13 +309,54 @@ useEffect(() => {
             </Card>
           ))
         )}
+        {selectedChat && (
+        <MessagingPanel
+          campaignId={campaignId}
+          receiverId={selectedChat.id}
+          receiverName={selectedChat.name}
+        />
+      )}
+
         {selectedInfluencer && (
-          <MessagingPanel
-            campaignId={campaignId}
-            receiverId={selectedInfluencer.id}
-            receiverName={selectedInfluencer.name}
-          />
-        )}
+  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+
+    <Card className="p-6 w-96 bg-white shadow-xl rounded-xl">
+
+      <div className="flex flex-col items-center">
+        <img
+          src={selectedInfluencer.profile_image_url || "https://via.placeholder.com/60"}
+          className="w-16 h-16 rounded-full mb-3"
+        />
+
+        <h2 className="text-xl font-bold">
+          {selectedInfluencer.full_name}
+        </h2>
+
+        <a
+          href={selectedInfluencer.profileUrl || "#"}
+          target="_blank"
+          className="text-blue-500"
+        >
+          View Profile
+        </a>
+      </div>
+
+      <div className="mt-4 text-sm space-y-1">
+        <p><b>Subscribers:</b> {formatSubscribers(selectedInfluencer.subscribers)}</p>
+        <p><b>Category:</b> {selectedInfluencer.category}</p>
+        <p><b>Engagement:</b> {(selectedInfluencer.subscribers || 0) < 1000 ? "N/A" : Math.min(selectedInfluencer.engagementRate || 0, 100).toFixed(2) + "%"}</p>
+      </div>
+
+      <Button
+        className="mt-4 w-full"
+        onClick={() => setSelectedInfluencer(null)}
+      >
+        Close
+      </Button>
+
+    </Card>
+  </div>
+)}
         
       </CardContent>
     </Card>

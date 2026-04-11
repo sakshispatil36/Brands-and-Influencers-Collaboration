@@ -1,8 +1,8 @@
 export interface Influencer {
   id: string;
   name: string;
-  followers: number;
-  followersCount: string;
+  subscribers: number;
+  subscribersFormatted?: string;
   category: string[];
   bio?: string;
   location: string;

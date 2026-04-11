@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent,CardDescription,CardHeader,CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield,Mail, Lock, User, Building } from "lucide-react";
+import { Shield,Mail, Lock, User, Building, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const signupSchema = z.object({
@@ -24,6 +24,9 @@ const signupSchema = z.object({
   fullName: z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100),
   userType: z.enum(["brand", "influencer"]),
   companyName: z.string().optional(),
+
+  profileUrl: z.string().url("Enter valid URL").optional(),
+  category: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -36,6 +39,7 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [showResetForm, setShowResetForm] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [signupData, setSignupData] = useState({
     email: "",
     password: "",
@@ -161,7 +165,62 @@ const Auth = () => {
   try {
     signupSchema.parse(signupData);
     setLoading(true);
+    
+    let youtubeData = {
+      profile_image_url: "https://ui-avatars.com/api/?name=" + signupData.fullName,
+      subscribers: 0,
+      engagementRate: 0,
+    };
+
+    // 🔥 FETCH REAL YOUTUBE DATA IF INFLUENCER
+    if (signupData.userType === "influencer" && signupData.profileUrl) {
+      try {
+        const YOUTUBE_API_KEY = "AIzaSyD0k-KliG7KdPyss-GOfHYVc_mdIGPuoqM"; // paste your key
+
+        const profileUrl = signupData.profileUrl.trim();
+        let channelRes = null;
+
+        if (profileUrl.includes("@")) {
+          // Handle @username format
+          const handle = profileUrl.split("@")[1]?.split("/")[0];
+          const res = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${handle}&key=${YOUTUBE_API_KEY}`
+          );
+          channelRes = await res.json();
+        } else if (profileUrl.includes("channel/")) {
+          // Handle channel/ID format
+          const channelId = profileUrl.split("channel/")[1]?.split("/")[0];
+          const res = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${YOUTUBE_API_KEY}`
+          );
+          channelRes = await res.json();
+        }
+
+        const channel = channelRes?.items?.[0];
+        if (channel) {
+          const stats = channel.statistics;
+          const subscribers = Number(stats.subscriberCount ?? 0);
+          const views = Number(stats.viewCount ?? 0);
+          const videos = Number(stats.videoCount ?? 1);
+          const avgViews = views / videos;
+          const engagementRate = subscribers > 0
+          ? Math.min(Number(((avgViews / subscribers) * 100).toFixed(2)), 100)
+          : 0;
+
+          youtubeData = {
+            profile_image_url: channel.snippet.thumbnails?.high?.url || 
+              "https://ui-avatars.com/api/?name=" + signupData.fullName,
+            subscribers,
+            engagementRate,
+          };
+        }
+      } catch (err) {
+        console.warn("YouTube fetch failed, using defaults", err);
+      }
+    }
+
     let error: { code?: string; message: string } | null = null;
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -169,23 +228,26 @@ const Auth = () => {
         signupData.password
       );
       const user = userCredential.user;
-      // ⬇️ Equivalent of Supabase `options.data`
+
       await setDoc(doc(db, "profiles", user.uid), {
         full_name: signupData.fullName,
         user_type: signupData.userType,
         company_name: signupData.companyName || "",
         email: signupData.email,
 
-         // 🔥 IF INFLUENCER
-      ...(signupData.userType === "influencer" && {
-        profileUrl: signupData.profileUrl,
-        category: signupData.category,
+        ...(signupData.userType === "brand" && {
+          brand_logo: "https://via.placeholder.com/50",
+          brand_description: "",
+          brand_website: "https://yourbrand.com",
+        }),
 
-        // TEMP VALUES (you can later auto-fetch)
-        profile_image_url: "https://via.placeholder.com/50",
-        followers: Math.floor(Math.random() * 100000),
-        engagementRate: Number((Math.random() * 10).toFixed(2)),
-      }),
+        ...(signupData.userType === "influencer" && {
+          profileUrl: signupData.profileUrl,
+          category: signupData.category,
+          profile_image_url: youtubeData.profile_image_url, // ✅ REAL LOGO
+          subscribers: youtubeData.subscribers,             // ✅ REAL SUBSCRIBERS
+          engagementRate: youtubeData.engagementRate,       // ✅ REAL ENGAGEMENT
+        }),
       });
     } catch (err) {
       if (err instanceof Error) {
@@ -195,6 +257,7 @@ const Auth = () => {
         };
       }
     }
+
     if (error) {
       if (error.code === "auth/email-already-in-use") {
         toast({
@@ -209,11 +272,13 @@ const Auth = () => {
       }
       return;
     }
+
     toast({
       title: "Account created!",
       description: "Successfully signed up. Logging you in...",
     });
     navigate("/dashboard");
+
   } catch (err) {
     if (err instanceof z.ZodError) {
       toast({
@@ -274,17 +339,28 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label htmlFor="login-password">Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="login-password"
-                          type="password"
-                          placeholder="••••••••"
-                          className="pl-10"
-                          value={loginData.password}
-                          onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                          required
-                        />
-                      </div>
+                      <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="pl-10 pr-10"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        required
+                      />
+                      <button
+                      type="button"
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                    </div>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>
@@ -373,14 +449,25 @@ const Auth = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                       <Input
-                        id="signup-password"
-                        type="password"
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className="pl-10"
-                        value={signupData.password}
-                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        className="pl-10 pr-10"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         required
                       />
+                      <button
+                      type="button"
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                     </div>
                   </div>
 
@@ -396,6 +483,7 @@ const Auth = () => {
                       <option value="influencer">Influencer</option>
                     </select>
                   </div>
+                  
                   {signupData.userType === "influencer" && (
                   <>
                     <div className="space-y-2">

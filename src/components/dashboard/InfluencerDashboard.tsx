@@ -1,6 +1,6 @@
 // InfluencerDashboard.tsx
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Briefcase, TrendingUp, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,8 @@ import { onSnapshot } from "firebase/firestore";
 interface Campaign {
   id: string;
   brand_name?: string;
+  brand_logo?: string;
+  brand_website?: string;
   title: string;
   description: string;
   budget: number;
@@ -95,7 +97,9 @@ const InfluencerDashboard = () => {
         }
         return {
           id: doc.id,
-          brand_name: data.brand_name || "",   
+          brand_name: data.brand_name || "",  
+          brand_logo: data.brand_logo ?? "",
+          brand_website: data.brand_website ?? "", 
           title: data.title || "",
           description: data.description || "",
           budget: Number(data.budget) || 0,
@@ -128,7 +132,6 @@ const InfluencerDashboard = () => {
 useEffect(() => {
     fetchData();
   }, []);
-
 
   const handleApply = async (campaignId: string) => {
   const user = auth.currentUser;
@@ -164,34 +167,6 @@ useEffect(() => {
   }
 };
 
-// const handleSignatureUpload = (
-//   e: React.ChangeEvent<HTMLInputElement>,
-//   appId: string
-// ) => {
-//   const file = e.target.files?.[0];
-
-//   if (!file || file.type !== "application/pdf") {
-//     toast({
-//       title: "Error",
-//       description: "Please upload a valid PDF file",
-//     });
-//     return;
-//   }
-
-//   // 🔥 Create temporary local URL
-//   const fileURL = URL.createObjectURL(file);
-
-//   // Save in state
-//   setSignatureUrls((prev) => ({
-//     ...prev,
-//     [appId]: fileURL,
-//   }));
-
-//   toast({
-//     title: "Success",
-//     description: "Signature uploaded successfully (Demo Mode) ✅",
-//   });
-// };
 useEffect(() => {
   const user = auth.currentUser;
   if (!user) return;
@@ -328,7 +303,7 @@ const handleSignatureUpload = async (
             {activeTab === "campaigns" && (
               <>
                 <h1 className="text-3xl font-bold text-foreground">Available Campaigns</h1>
-                <div className="space-y-4">
+                <div className="space-y-8">
                   {campaigns.length === 0 ? (
                     <Card className="bg-card border-border">
                       <CardContent className="pt-6">
@@ -341,15 +316,56 @@ const handleSignatureUpload = async (
                     campaigns.map((campaign) => {
                       const application = applications.get(campaign.id);
                       return (
-                        <Card key={campaign.id} className="bg-card border-border">
-                          <CardHeader>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-card-foreground">{campaign.title}</CardTitle>
-                                <CardDescription className="text-muted-foreground">
-                                  By {campaign.brand_name}
-                                </CardDescription>
-                              </div>
+                      <Card key={campaign.id} className="bg-card border-border">
+                      <CardHeader>
+                      <div className="flex justify-between items-start">
+
+                        {/* LEFT SIDE */}
+                        <div className="flex items-start gap-3">
+
+                          {/* LOGO */}
+                          <img
+                            src={
+                              campaign.brand_logo ||
+                              `https://www.google.com/s2/favicons?domain=${campaign.brand_website}&sz=128`
+                            }
+                            className="w-10 h-10 rounded-full"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "https://www.google.com/s2/favicons?domain=google.com&sz=128";
+                            }}
+                          />
+
+                          {/* TEXT COLUMN */}
+                          <div className="flex flex-col">
+
+                            {/* BRAND NAME */}
+                            <p
+                              className="font-bold text-blue-600 cursor-pointer hover:underline"
+                              onClick={() => {
+                                if (!campaign.brand_website) {
+                                  alert("No website provided");
+                                  return;
+                                }
+
+                                let url = campaign.brand_website.trim();
+                                url = url.replace(/^https?:\/\//, "");
+                                url = "https://" + url;
+
+                                window.open(url, "_blank", "noopener,noreferrer");
+                              }}
+                            >
+                              {campaign.brand_name}
+                            </p>
+
+                            {/* ✅ TITLE BELOW BRAND */}
+                            <p className="text-sm text-muted-foreground">
+                              {campaign.title}
+                            </p>
+
+                          </div>
+                        </div>
+
                               {application && (
                                <span
                                   className={`px-2 py-1 rounded text-xs font-medium ${
@@ -400,7 +416,7 @@ const handleSignatureUpload = async (
                                     <MessageSquare className="h-4 w-4 mr-1" />
                                     {selectedCampaign?.id === campaign.id ? "Hide Messages" : "Message Brand"}
                                   </Button>
-                                )}
+                                  )}
                               </div>
                             </div>
                              {application?.status === "approved" && (
@@ -423,7 +439,7 @@ const handleSignatureUpload = async (
                                     window.open(url, "_blank");
                                   }}
                                 >
-                                  Generate Contract
+                                  View Contract
                                 </Button>
 
                                 {/* Upload Signature */}
@@ -459,18 +475,18 @@ const handleSignatureUpload = async (
                           </div>
                         )}
                           </CardContent>
+                          {selectedCampaign?.id === campaign.id && (
+                          <MessagingPanel 
+                            campaignId={selectedCampaign.id}
+                            receiverId={selectedCampaign.brandId}
+                            receiverName={selectedCampaign.brandName}
+                          />
+                        )}
                         </Card>
                       );
                     })
                   )}
                 </div>
-                {selectedCampaign && (
-                  <MessagingPanel 
-                    campaignId={selectedCampaign.id}
-                    receiverId={selectedCampaign.brandId}
-                    receiverName={selectedCampaign.brandName}
-                  />
-                )}
               </>
             )}
 

@@ -111,14 +111,14 @@
 //       const channelId = item.id.channelId;
 //       const stats = statsMap[channelId];
 
-//       const followers = Number(stats?.subscriberCount ?? 0);
+//       const subscribers = Number(stats?.subscriberCount ?? 0);
 //       const views = Number(stats?.viewCount ?? 0);
 //       const videos = Number(stats?.videoCount ?? 1);
 
 //       const avgViews = views / videos;
 
 //       const engagementRate =
-//         followers > 0 ? (avgViews / followers) * 100 : 0;
+//         subscribers > 0 ? (avgViews / subscribers) * 100 : 0;
 
 //       let status: "Normal" | "Trusted" | "Suspicious" = "Normal";
 
@@ -128,8 +128,8 @@
 //       return {
 //         id: channelId,
 //         name: item.snippet.channelTitle,
-//         followers,
-//         followersCount: formatFollowers(followers),
+//         subscribers,
+//         subscribersCount: formatFollowers(subscribers),
 //         category: [category],
 //         bio: item.snippet.description || "",
 //         location: "Unknown",
@@ -278,14 +278,16 @@ export async function searchInfluencers(category: string,pageToken?: string): Pr
       const channelInfo = channelData.items.find(c => c.id === channelId);
       const image = channelInfo?.snippet?.thumbnails?.high?.url || "";
     
-      const followers = Number(stats?.subscriberCount ?? 0);
+      const subscribers = Number(stats?.subscriberCount ?? 0);
       const views = Number(stats?.viewCount ?? 0);
+      console.log("SUBS:", stats?.subscriberCount);
+      console.log("VIEWS:", stats?.viewCount);
       const videos = Number(stats?.videoCount ?? 1);
 
       const avgViews = views / videos;
 
       const engagementRate =
-        followers > 0 ? (avgViews / followers) * 100 : 0;
+        subscribers > 0 ? (avgViews / subscribers) * 100 : 0;
 
       let status: "Normal" | "Trusted" | "Suspicious" = "Normal";
 
@@ -295,8 +297,8 @@ export async function searchInfluencers(category: string,pageToken?: string): Pr
       return {
         id: channelId,
         name: item.snippet.channelTitle,
-        followers,
-        followersCount: formatFollowers(followers),
+        subscribers,
+        subscribersFormatted: formatFollowers(subscribers),
         category: [category],
         bio: item.snippet.description || "",
         location: "Unknown",

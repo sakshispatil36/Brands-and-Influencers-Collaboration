@@ -449,14 +449,16 @@ const Auth = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                       <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="pl-10 pr-10"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        required
-                      />
+                      id="signup-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pl-10 pr-10"
+                      value={signupData.password}   // ✅ FIXED
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, password: e.target.value })
+                      } // ✅ FIXED
+                      required
+                    />
                       <button
                       type="button"
                       className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"

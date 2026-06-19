@@ -19,5 +19,5 @@
       "@/*": ["*"]
     }
   },
-  "include": ["src", "src/Backend"]
+  "include": ["src"]
 }

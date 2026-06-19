@@ -4,7 +4,7 @@ console.log("🔥 ENV CHECK:", process.env.YOUTUBE_API_KEY);
 
 import express from "express";
 import cors from "cors";
-import influencerRoutes from "./Routes/Influencer.ts";
+import influencerRoutes from "./Routes/Influencer";
 
 const app = express();
 

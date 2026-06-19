@@ -24,21 +24,22 @@ export const getRecommendedInfluencers = async (
     // ✅ ARRAY CHECK
     if (!categories.includes(requirement.category)) return;
 
-    const followers = Number(data.followers ?? 0);
+    const subscribers = Number(
+      data.subscribers ?? data.followers ?? 0
+    );
     const engagementRate = Number(data.engagementRate ?? 0);
 
     influencers.push({
       id: docSnap.id,
       name: data.name ?? "Unknown",
       category: categories,
-      followers,
-      followersCount: String(followers),
+      subscribers,
       location: data.location ?? "India",
       engagementRate,
       credibilityScore: 80,
       suspicious: false,
       status: "Normal",
-      matchScore: followers / 10000,
+      matchScore: subscribers / 10000,
     });
   });
 

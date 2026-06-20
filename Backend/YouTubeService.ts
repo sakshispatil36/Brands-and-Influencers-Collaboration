@@ -1,4 +1,4 @@
-import type { Influencer } from "../types/influencer";
+import type { Influencer } from "./types/influencer";
 import fetch from "node-fetch";
 
 // ===== TYPES =====

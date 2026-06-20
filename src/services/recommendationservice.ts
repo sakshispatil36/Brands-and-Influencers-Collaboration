@@ -1,6 +1,6 @@
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../integrations/firebase/client";
-import { Influencer } from "../types/influencer";
+import { Influencer } from "../../Backend/types/influencer";
 
 interface CampaignRequirement {
   category: string;

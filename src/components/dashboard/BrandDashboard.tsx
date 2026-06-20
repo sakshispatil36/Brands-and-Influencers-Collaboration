@@ -26,7 +26,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import DashboardSidebar from "./DashboardSidebar";
 import { useToast } from "@/hooks/use-toast";
 import ProfileSettings from "./ProfileSettings";
-import { Influencer } from "../../types/influencer";
+import { Influencer } from "../../../Backend/types/influencer";
 import {
   LineChart,
   Line,
@@ -291,7 +291,7 @@ const loadCampaignRecommendations = async () => {
   setLoading(true);
 
   const response = await fetch(
-    `http://localhost:5000/api/influencers/recommend?category=${category}${
+    `https://brands-influencer-api.onrender.com/api/influencers/recommend?category=${category}${
       nextPageToken ? `&pageToken=${nextPageToken}` : ""
     }`
   );

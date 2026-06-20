@@ -133,7 +133,7 @@ export const CreateCampaignDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white border border-gray-200 shadow-2xl rounded-xl p-6">
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-card-foreground">Create New Campaign</DialogTitle>
           <DialogDescription className="text-muted-foreground">

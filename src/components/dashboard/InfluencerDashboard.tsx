@@ -14,6 +14,8 @@ import MessagingPanel from "./MessagingPanel";
 import { generateContractPDF } from "../../services/contractService";
 import { doc, setDoc } from "firebase/firestore";
 import { onSnapshot } from "firebase/firestore";
+import SignaturePad from "./SignaturePad";
+
 
 interface Campaign {
   id: string;
@@ -48,7 +50,11 @@ const InfluencerDashboard = () => {
   const [applications, setApplications] = useState<Map<string, Application>>(new Map());
   const [selectedCampaign, setSelectedCampaign] = useState<{id: string, brandId: string, brandName: string} | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [contractsMap, setContractsMap] = useState<Record<string, string>>({});
+  const [contractsMap, setContractsMap] = useState<Record<string,string>>({});
+  const [showSignatureCampaign, setShowSignatureCampaign] =
+  useState<string | null>(null);
+  const [selectedSignature, setSelectedSignature] =
+  useState<string | null>(null);
   const { toast } = useToast();
 
  const fetchData = async () => {
@@ -192,47 +198,33 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 
-const handleSignatureUpload = async (
-  e: React.ChangeEvent<HTMLInputElement>,
+const saveSignature = async (
+  imageData: string,
   campaignId: string,
   brandId: string
 ) => {
+
   const user = auth.currentUser;
+
   if (!user) return;
 
-  const file = e.target.files?.[0];
-  if (!file || file.type !== "application/pdf") {
-    toast({
-      title: "Error",
-      description: "Please upload a valid PDF file",
-    });
-    return;
-  }
-
-  try {
-    // Create temporary URL (for demo storage)
-    const fileURL = URL.createObjectURL(file);
-
-    // Save to Firestore contracts collection
-    await setDoc(doc(db, "contracts", `${campaignId}_${user.uid}`), {
+  await setDoc(
+    doc(db, "contracts", `${campaignId}_${user.uid}`),
+    {
       campaign_id: campaignId,
       influencer_id: user.uid,
       brand_id: brandId,
-      signature_url: fileURL,
-      signed_at: serverTimestamp(),
-    });
 
-    toast({
-      title: "Success",
-      description: "Contract signed successfully ✅",
-    });
+      signature_url: imageData, // save base64 directly
 
-  } catch {
-    toast({
-      title: "Error",
-      description: "Failed to upload signature",
-    });
-  }
+      signed_at: serverTimestamp()
+    }
+  );
+
+  toast({
+    title: "Success",
+    description: "Contract signed successfully"
+  });
 };
 
   return (
@@ -444,34 +436,35 @@ const handleSignatureUpload = async (
 
                                 {/* Upload Signature */}
                                 <label>
-                                  <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    hidden
-                                    onChange={(e) => handleSignatureUpload(e, campaign.id, campaign.brand_id)}
-                                  />
-                                  <Button size="sm" variant="outline" asChild>
-                                    <span>✍ Upload Signature</span>
-                                  </Button>
+                                  <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!!contractsMap[campaign.id]}
+                                  onClick={() =>
+                                    setShowSignatureCampaign(campaign.id)
+                                  }
+                                >
+                                  {contractsMap[campaign.id]
+                                    ? "✅ Contract Signed"
+                                    : "✍ Sign Contract"}
+                                </Button>
                                 </label>
 
                                 {contractsMap[campaign.id] && (
                                   <>
-                                    <a
-                                      href={contractsMap[campaign.id]}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-green-600 underline"
-                                    >
-                                      📄 View Signature
-                                    </a>
-
-                                    <span className="text-green-600 text-sm font-medium">
-                                      ✅ Contract Signed
-                                    </span>
+                                   <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setSelectedSignature(
+                                        contractsMap[campaign.id]
+                                      )
+                                    }
+                                  >
+                                    View Signature
+                                  </Button>
                                   </>
                                 )}
-
                           </div>
                         )}
                           </CardContent>
@@ -491,9 +484,65 @@ const handleSignatureUpload = async (
             )}
 
             {activeTab === "settings" && (
-              <ProfileSettings />
+                <ProfileSettings />
+              )}
+
+              {showSignatureCampaign && (
+                <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+
+                  <Card className="p-4 bg-white w-[600px]">
+
+                    <h2 className="text-lg font-bold mb-3">
+                      Sign Contract
+                    </h2>
+
+                    <SignaturePad
+                      onSave={(image) => {
+                        saveSignature(
+                          image,
+                          showSignatureCampaign,
+                          campaigns.find(
+                            c => c.id === showSignatureCampaign
+                          )?.brand_id || ""
+                        );
+
+                        setShowSignatureCampaign(null);
+                      }}
+                    />
+
+                    <Button
+                      className="mt-3"
+                      onClick={() => setShowSignatureCampaign(null)}
+                    >
+                      Close
+                    </Button>
+
+                  </Card>
+
+                </div>
+              )}
+              {selectedSignature && (
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                <div className="bg-white p-4 rounded-lg max-w-3xl">
+                  <img
+                    src={selectedSignature}
+                    alt="Signature"
+                    className="max-h-[600px] max-w-full"
+                  />
+
+                  <Button
+                    className="mt-3 w-full"
+                    onClick={() =>
+                      setSelectedSignature(null)
+                    }
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
             )}
-          </main>
+
+              </main>
         </div>
       </SidebarProvider>
     </>

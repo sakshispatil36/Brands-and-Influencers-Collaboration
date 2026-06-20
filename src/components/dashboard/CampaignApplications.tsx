@@ -288,14 +288,45 @@ const formatSubscribers = (num?: number) => {
                   {/* View Uploaded Signature */}
                   {contractsMap[app.influencer_id] && (
                     <>
-                      <a
-                        href={contractsMap[app.influencer_id]}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-green-600 underline"
+                      <div className="flex flex-col gap-2">
+
+                      <img
+                        src={contractsMap[app.influencer_id]}
+                        alt="Signature"
+                        className="h-20 border rounded"
+                      />
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const signature = contractsMap[app.influencer_id];
+
+                          if (!signature) {
+                            alert("Signature not found");
+                            return;
+                          }
+
+                          const win = window.open("", "_blank");
+
+                          if (win) {
+                            win.document.write(`
+                              <html>
+                                <head>
+                                  <title>Signature</title>
+                                </head>
+                                <body style="display:flex;justify-content:center;align-items:center;height:100vh;">
+                                  <img src="${signature}" style="max-width:90%;max-height:90%;" />
+                                </body>
+                              </html>
+                            `);
+                          }
+                        }}
                       >
-                        📄 View Signature
-                      </a>
+                        View Full Signature
+                      </Button>
+
+                    </div>
 
                       <span className="text-green-600 text-sm font-medium">
                         ✅ Contract Signed

@@ -32,11 +32,11 @@ A full-stack MERN platform that connects brands and influencers for campaign man
 
 <p align="center">
   <img src="./screenshots/Home-Page.png" width="45%">
-  <img src="./screenshots/Influencer-Dashboard.png" width="45%">
+  <img src="./screenshots/Brand-Dashboard.png" width="45%">
 </p>
 
 <p align="center">
-  <img src="./screenshots/Brand-Dashboard.png" width="45%">
+  <img src="./screenshots/Influencer-Dashboard.png" width="45%">
   <img src="./screenshots/Recommendations-Page.png" width="45%">
 </p>
 

@@ -1,75 +1,49 @@
-# React + TypeScript + Vite
+# 🤝 Brand Influencer Collaboration Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack MERN platform that connects brands and influencers for campaign management, collaboration, and communication.
 
-Currently, two official plugins are available:
+## 🚀 Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+🌐 https://brands-and-influencers-collaboration.vercel.app
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- Brand Dashboard
+- Influencer Dashboard
+- Campaign Creation
+- Campaign Applications
+- Real-Time Messaging
+- Authentication & Authorization
+- Firebase Database Integration
+- Profile Management
+- Responsive Design
 
-Note: This will impact Vite dev & build performances.
+## 🛠️ Tech Stack
 
-## Expanding the ESLint configuration
+- React.js
+- Node.js
+- Express.js
+- Firebase Firestore
+- Firebase Authentication
+- Tailwind CSS
+- REST APIs
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📸 Screenshots
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+<p align="center">
+  <img src="./screenshots/Home-Page.png" width="45%">
+  <img src="./screenshots/Influencer-Dashboard.png" width="45%">
+</p>
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+<p align="center">
+  <img src="./screenshots/Brand-Dashboard.png" width="45%">
+  <img src="./screenshots/Recommendations-Page.png" width="45%">
+</p>
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📂 Installation
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+bash
+git clone https://github.com/sakshispatil36/Brand-Influencer-Collaboration.git
+cd Brand-Influencer-Collaboration
+npm install
+npm start
